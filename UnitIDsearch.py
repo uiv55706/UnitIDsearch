@@ -81,8 +81,6 @@ def traverse_directory(root_dir, drive_name, search_terms, start_date, end_date,
         print(f"Error traversing directory {root_dir}: {e}")
     return results
 
-
-
 # GUI function
 def search_errors():
     search_terms = search_entry.get().split(',')  # Splitting multiple search terms
