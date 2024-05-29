@@ -44,16 +44,15 @@ def process_file(file_path, drive_name, search_terms):
             for i, line in enumerate(lines):
                 for term in search_terms:
                     if term in line:
-                        # Ensure there's a next line available
-                        if i < len(lines) - 1:
+                        result_message = f"{drive_name} - {station_name}\n{line.strip()}\n"
+                        if 'UNIT_RESULT' in line and i < len(lines) - 1:
                             next_line = lines[i + 1].strip()
-                        else:
-                            next_line = ""
-                        result_message = f"{drive_name} - {station_name}\n{line.strip()}\n{next_line}\n"
+                            result_message += f"{next_line}\n"
                         results.append(result_message)
     except Exception as e:
         print(f"Error processing file {file_path}: {e}")
     return results
+
 
 # Function to traverse directories and process tracer files within a date range
 def traverse_directory(root_dir, drive_name, search_terms, start_date, end_date, station_name):
