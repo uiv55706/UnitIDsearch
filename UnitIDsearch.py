@@ -269,8 +269,6 @@ select_all_btn.pack(side=tk.LEFT, padx=(20, 5))
 unselect_all_btn = tk.Button(date_frame, text="Unselect All", command=unselect_all, font=("Arial", 14))
 unselect_all_btn.pack(side=tk.LEFT, padx=(20, 5))
 
-
-
 # Drive selection
 production_pcs = read_production_pcs(r'\\vt1.vitesco.com\SMT\didt1083\01_MES_PUBLIC\1.6.Production Errors\production_pc.xlsx')
 
