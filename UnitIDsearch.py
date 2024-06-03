@@ -79,7 +79,6 @@ def traverse_directory(root_dir, drive_name, search_terms, start_date, end_date,
         print(f"Error traversing directory {root_dir}: {e}")
     return results
 
-# Function to search and output UIDs
 def search_and_output_uids():
     search_terms = search_entry.get().split(',')  # Splitting multiple search terms
     if not search_terms:
@@ -98,11 +97,15 @@ def search_and_output_uids():
     selected_drives = [drive for drive, var in drive_vars.items() if var.get()]
 
     results = []
+    not_found = []
 
     for drive_name in selected_drives:
         drive_path = production_pcs.get(drive_name)
         if drive_path:
-            results.extend(traverse_directory_uids(drive_path, drive_name, search_terms, start_date, end_date, station_name))
+            drive_results = traverse_directory_uids(drive_path, drive_name, search_terms, start_date, end_date, station_name)
+            if not drive_results:
+                not_found.extend(search_terms)
+            results.extend(drive_results)
     
     if results:
         output_file_path = r'\\vt1.vitesco.com\SMT\didt1083\01_MES_PUBLIC\1.6.Production Errors\output_uids.txt'
@@ -114,7 +117,10 @@ def search_and_output_uids():
         except Exception as e:
             messagebox.showerror("File Error", f"Could not write to file: {e}")
     else:
-        messagebox.showinfo("Search Results", "No matching results found.")
+        if not_found:
+            messagebox.showinfo("Search Results", f"No matching results found for terms: {', '.join(not_found)}")
+        else:
+            messagebox.showinfo("Search Results", "No matching results found.")
 
 # Function to process the tracer files for UID extraction
 def process_file_uids(file_path, drive_name, search_terms):
@@ -183,11 +189,15 @@ def search_errors():
     selected_drives = [drive for drive, var in drive_vars.items() if var.get()]
 
     results = []
+    not_found = []
 
     for drive_name in selected_drives:
         drive_path = production_pcs.get(drive_name)
         if drive_path:
-            results.extend(traverse_directory(drive_path, drive_name, search_terms, start_date, end_date, station_name))
+            drive_results = traverse_directory(drive_path, drive_name, search_terms, start_date, end_date, station_name)
+            if not drive_results:
+                not_found.extend(search_terms)
+            results.extend(drive_results)
     
     if results:
         output_file_path = r'\\vt1.vitesco.com\SMT\didt1083\01_MES_PUBLIC\1.6.Production Errors\output.txt'
@@ -199,7 +209,10 @@ def search_errors():
         except Exception as e:
             messagebox.showerror("File Error", f"Could not write to file: {e}")
     else:
-        messagebox.showinfo("Search Results", "No matching results found.")
+        if not_found:
+            messagebox.showinfo("Search Results", f"No matching results found for terms: {', '.join(not_found)}")
+        else:
+            messagebox.showinfo("Search Results", "No matching results found.")
 
 def select_all():
     for var in drive_vars.values():
