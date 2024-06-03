@@ -247,26 +247,29 @@ station_entry.pack(side=tk.LEFT, padx=10)
 
 # Date inputs frame
 date_frame = tk.Frame(root)
-date_frame.pack(pady=10)
+date_frame.pack(pady=10, padx=10, anchor='w')
 
 # Start date input
 tk.Label(date_frame, text="Select Start Date:", font=("Arial", 14)).pack(side=tk.LEFT)
 start_date_entry = DateEntry(date_frame, font=("Arial", 14), width=12, background='darkblue',
                              foreground='white', borderwidth=2, year=datetime.now().year)
-start_date_entry.pack(side=tk.LEFT, padx=(10, 0))
+start_date_entry.pack(side=tk.LEFT, padx=(10, 20))
 
 # End date input
-tk.Label(date_frame, text="Select End Date:", font=("Arial", 14)).pack(side=tk.LEFT, padx=(20, 0))
+tk.Label(date_frame, text="Select End Date:", font=("Arial", 14)).pack(side=tk.LEFT)
 end_date_entry = DateEntry(date_frame, font=("Arial", 14), width=12, background='darkblue',
                            foreground='white', borderwidth=2, year=datetime.now().year)
-end_date_entry.pack(side=tk.LEFT, padx=(10, 0))
+end_date_entry.pack(side=tk.LEFT, padx=(10, 20))
 
-# Select All and Unselect All buttons
-button_frame = tk.Frame(root)
-button_frame.pack(pady=10)
+# Select All button
+select_all_btn = tk.Button(date_frame, text="Select All", command=select_all, font=("Arial", 14))
+select_all_btn.pack(side=tk.LEFT, padx=(20, 5))
 
-tk.Button(button_frame, text="Select All", command=select_all, font=("Arial", 14)).pack(side=tk.LEFT, padx=5)
-tk.Button(button_frame, text="Unselect All", command=unselect_all, font=("Arial", 14)).pack(side=tk.LEFT, padx=5)
+# Unselect All button
+unselect_all_btn = tk.Button(date_frame, text="Unselect All", command=unselect_all, font=("Arial", 14))
+unselect_all_btn.pack(side=tk.LEFT, padx=(20, 5))
+
+
 
 # Drive selection
 production_pcs = read_production_pcs(r'\\vt1.vitesco.com\SMT\didt1083\01_MES_PUBLIC\1.6.Production Errors\production_pc.xlsx')
