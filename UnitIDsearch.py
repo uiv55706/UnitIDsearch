@@ -19,31 +19,31 @@ def read_production_pcs(file_path):
         print(f"Error reading Excel file: {e}")
     return production_pcs
 
-# Function to extract the station name from a folder name
-def extract_station_name(folder_name):
-    patterns = [
-        r'_(\w+EVO)', 
-        r'_(P\d+\w+)', 
-        r'_(P\d+\w+\s)' 
-    ]
-    for pattern in patterns:
-        match = re.search(pattern, folder_name)
+# Function to extract the station name from the folder before the "Logs" folder
+def extract_station_name_from_logs(file_path):
+    match = re.search(r'([^\\\/]+)[\\\/]Logs[\\\/]', file_path)
+    if match:
+        station_folder = match.group(1)
+        print(f"Extracting station name from folder: {station_folder}")  # Debugging print
+        match = re.search(r'P(.*)', station_folder)
         if match:
-            return match.group(1)
-    return folder_name
+            station_name = match.group(1)
+            print(f"Extracted station name: {station_name}")  # Debugging print
+            return station_name
+    print("Logs folder not found in path.")  # Debugging print
+    return "Unknown Station"
 
 # Function to process the tracer files
-def process_file(file_path, drive_name, search_terms):
+def process_file(file_path, drive_name, search_terms, found_terms):
     results = []
     try:
         with open(file_path, 'r') as file:
-            parent_folder_name = os.path.basename(os.path.dirname(file_path))
-            grandparent_folder_name = os.path.basename(os.path.dirname(os.path.dirname(file_path)))
-            station_name = extract_station_name(grandparent_folder_name)
+            station_name = extract_station_name_from_logs(file_path)
             lines = file.readlines()
             for i, line in enumerate(lines):
                 for term in search_terms:
                     if term in line:
+                        found_terms.add(term)
                         result_message = f"{drive_name} - {station_name}\n{line.strip()}\n"
                         if 'UNIT_RESULT' in line and i < len(lines) - 1:
                             next_line = lines[i + 1].strip()
@@ -54,33 +54,32 @@ def process_file(file_path, drive_name, search_terms):
     return results
 
 # Function to traverse directories and process tracer files within a date range
-def traverse_directory(root_dir, drive_name, search_terms, start_date, end_date, station_name):
+def traverse_directory(root_dir, drive_name, search_terms, start_date, end_date, station_name, found_terms):
     results = []
     try:
         print(f"Processing drive: {drive_name} at path: {root_dir}")
-        # Convert start_date and end_date to datetime.datetime objects
         start_datetime = datetime.combine(start_date, time.min)
         end_datetime = datetime.combine(end_date, time.max)
         for root, dirs, files in os.walk(root_dir):
             for file in files:
-                if "tracer" in file.lower() and station_name.lower() in root.lower():  # Check if station name is in file path
+                if "tracer" in file.lower() and station_name.lower() in root.lower():
                     file_path = os.path.join(root, file)
+                    print(f"Found file: {file_path}")  # Debugging print
                     if 'old' in file_path.lower() or 'not_used' in file_path.lower() or 'not used' in file_path.lower():
                         print(f"Skipping file: {file_path}")
                         continue
 
-                    # Check the file's modification date
                     file_mod_time = os.path.getmtime(file_path)
                     file_date = datetime.fromtimestamp(file_mod_time)
                     if start_datetime <= file_date <= end_datetime:
                         print(f"Processing file: {file_path}")
-                        results.extend(process_file(file_path, drive_name, search_terms))
+                        results.extend(process_file(file_path, drive_name, search_terms, found_terms))
     except Exception as e:
         print(f"Error traversing directory {root_dir}: {e}")
     return results
 
 def search_and_output_uids():
-    search_terms = search_entry.get().split(',')  # Splitting multiple search terms
+    search_terms = search_entry.get().split(',')
     if not search_terms:
         messagebox.showwarning("Input Error", "Please enter search terms.")
         return
@@ -92,21 +91,20 @@ def search_and_output_uids():
         messagebox.showwarning("Date Error", "End date must be greater than or equal to start date.")
         return
 
-    station_name = station_entry.get()  # Get the station name entered by the user
+    station_name = station_entry.get()
 
     selected_drives = [drive for drive, var in drive_vars.items() if var.get()]
 
     results = []
-    not_found = []
+    found_terms = set()
 
     for drive_name in selected_drives:
         drive_path = production_pcs.get(drive_name)
         if drive_path:
-            drive_results = traverse_directory_uids(drive_path, drive_name, search_terms, start_date, end_date, station_name)
-            if not drive_results:
-                not_found.extend(search_terms)
+            drive_results = traverse_directory_uids(drive_path, drive_name, search_terms, start_date, end_date, station_name, found_terms)
             results.extend(drive_results)
-    
+
+    not_found = set(search_terms) - found_terms
     if results:
         output_file_path = r'\\vt1.vitesco.com\SMT\didt1083\01_MES_PUBLIC\1.6.Production Errors\output_uids.txt'
         try:
@@ -122,18 +120,16 @@ def search_and_output_uids():
         else:
             messagebox.showinfo("Search Results", "No matching results found.")
 
-# Function to process the tracer files for UID extraction
-def process_file_uids(file_path, drive_name, search_terms):
+def process_file_uids(file_path, drive_name, search_terms, found_terms):
     results = []
     try:
         with open(file_path, 'r') as file:
-            parent_folder_name = os.path.basename(os.path.dirname(file_path))
-            grandparent_folder_name = os.path.basename(os.path.dirname(os.path.dirname(file_path)))
-            station_name = extract_station_name(grandparent_folder_name)
+            station_name = extract_station_name_from_logs(file_path)
             lines = file.readlines()
             for i, line in enumerate(lines):
                 for term in search_terms:
                     if term in line:
+                        found_terms.add(term)
                         uid_in_match = re.search(r'uid_in="([^"]+)"', line)
                         uid_assy_1_match = re.search(r'uid_assy_1="([^"]+)"', line)
                         if uid_in_match and uid_assy_1_match:
@@ -145,34 +141,32 @@ def process_file_uids(file_path, drive_name, search_terms):
         print(f"Error processing file {file_path}: {e}")
     return results
 
-# Function to traverse directories and process tracer files for UID extraction
-def traverse_directory_uids(root_dir, drive_name, search_terms, start_date, end_date, station_name):
+def traverse_directory_uids(root_dir, drive_name, search_terms, start_date, end_date, station_name, found_terms):
     results = []
     try:
         print(f"Processing drive: {drive_name} at path: {root_dir}")
-        # Convert start_date and end_date to datetime.datetime objects
         start_datetime = datetime.combine(start_date, time.min)
         end_datetime = datetime.combine(end_date, time.max)
         for root, dirs, files in os.walk(root_dir):
             for file in files:
-                if "tracer" in file.lower() and station_name.lower() in root.lower():  # Check if station name is in file path
+                if "tracer" in file.lower() and station_name.lower() in root.lower():
                     file_path = os.path.join(root, file)
+                    print(f"Found file: {file_path}")  # Debugging print
                     if 'old' in file_path.lower() or 'not_used' in file_path.lower() or 'not used' in file_path.lower():
                         print(f"Skipping file: {file_path}")
                         continue
 
-                    # Check the file's modification date
                     file_mod_time = os.path.getmtime(file_path)
                     file_date = datetime.fromtimestamp(file_mod_time)
                     if start_datetime <= file_date <= end_datetime:
                         print(f"Processing file: {file_path}")
-                        results.extend(process_file_uids(file_path, drive_name, search_terms))
+                        results.extend(process_file_uids(file_path, drive_name, search_terms, found_terms))
     except Exception as e:
         print(f"Error traversing directory {root_dir}: {e}")
     return results
 
 def search_errors():
-    search_terms = search_entry.get().split(',')  # Splitting multiple search terms
+    search_terms = search_entry.get().split(',')
     if not search_terms:
         messagebox.showwarning("Input Error", "Please enter search terms.")
         return
@@ -184,21 +178,20 @@ def search_errors():
         messagebox.showwarning("Date Error", "End date must be greater than or equal to start date.")
         return
 
-    station_name = station_entry.get()  # Get the station name entered by the user
+    station_name = station_entry.get()
 
     selected_drives = [drive for drive, var in drive_vars.items() if var.get()]
 
     results = []
-    not_found = []
+    found_terms = set()
 
     for drive_name in selected_drives:
         drive_path = production_pcs.get(drive_name)
         if drive_path:
-            drive_results = traverse_directory(drive_path, drive_name, search_terms, start_date, end_date, station_name)
-            if not drive_results:
-                not_found.extend(search_terms)
+            drive_results = traverse_directory(drive_path, drive_name, search_terms, start_date, end_date, station_name, found_terms)
             results.extend(drive_results)
-    
+
+    not_found = set(search_terms) - found_terms
     if results:
         output_file_path = r'\\vt1.vitesco.com\SMT\didt1083\01_MES_PUBLIC\1.6.Production Errors\output.txt'
         try:
@@ -225,7 +218,6 @@ def unselect_all():
 def select_csv_file():
     file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
     if file_path:
-        # Read CSV file and set search terms
         try:
             df = pd.read_csv(file_path)
             search_entry.delete(0, tk.END)
