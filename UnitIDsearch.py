@@ -78,12 +78,15 @@ def traverse_directory(root_dir, drive_name, search_terms, start_date, end_date,
         print(f"Error traversing directory {root_dir}: {e}")
     return results
 
+# Function to handle the search and output UIDs functionality
 def search_and_output_uids():
+    # Get search terms from entry field
     search_terms = search_entry.get().split(',')
     if not search_terms:
         messagebox.showwarning("Input Error", "Please enter search terms.")
         return
 
+    # Get start and end dates from DateEntry widgets
     start_date = start_date_entry.get_date()
     end_date = end_date_entry.get_date()
 
@@ -91,8 +94,10 @@ def search_and_output_uids():
         messagebox.showwarning("Date Error", "End date must be greater than or equal to start date.")
         return
 
+    # Get the station name from entry field
     station_name = station_entry.get()
 
+    # Get selected drives from the checkboxes
     selected_drives = [drive for drive, var in drive_vars.items() if var.get()]
 
     results = []
@@ -120,6 +125,7 @@ def search_and_output_uids():
         else:
             messagebox.showinfo("Search Results", "No matching results found.")
 
+# Function to process files and extract UID details
 def process_file_uids(file_path, drive_name, search_terms, found_terms):
     results = []
     try:
@@ -141,6 +147,7 @@ def process_file_uids(file_path, drive_name, search_terms, found_terms):
         print(f"Error processing file {file_path}: {e}")
     return results
 
+# Function to traverse directories and process files for UID extraction within a date range
 def traverse_directory_uids(root_dir, drive_name, search_terms, start_date, end_date, station_name, found_terms):
     results = []
     try:
@@ -165,12 +172,15 @@ def traverse_directory_uids(root_dir, drive_name, search_terms, start_date, end_
         print(f"Error traversing directory {root_dir}: {e}")
     return results
 
+# Function to handle the search errors functionality
 def search_errors():
+    # Get search terms from entry field
     search_terms = search_entry.get().split(',')
     if not search_terms:
         messagebox.showwarning("Input Error", "Please enter search terms.")
         return
 
+    # Get start and end dates from DateEntry widgets
     start_date = start_date_entry.get_date()
     end_date = end_date_entry.get_date()
 
@@ -178,8 +188,10 @@ def search_errors():
         messagebox.showwarning("Date Error", "End date must be greater than or equal to start date.")
         return
 
+    # Get the station name from entry field
     station_name = station_entry.get()
 
+    # Get selected drives from the checkboxes
     selected_drives = [drive for drive, var in drive_vars.items() if var.get()]
 
     results = []
@@ -207,14 +219,17 @@ def search_errors():
         else:
             messagebox.showinfo("Search Results", "No matching results found.")
 
+# Function to select all checkboxes
 def select_all():
     for var in drive_vars.values():
         var.set(True)
 
+# Function to unselect all checkboxes
 def unselect_all():
     for var in drive_vars.values():
         var.set(False)
 
+# Function to allow user to select a CSV file containing search terms
 def select_csv_file():
     file_path = filedialog.askopenfilename(filetypes=[("CSV files", "*.csv")])
     if file_path:
@@ -225,6 +240,7 @@ def select_csv_file():
         except Exception as e:
             messagebox.showerror("File Error", f"Error reading CSV file: {e}")
 
+# Function to enable scrolling with mouse wheel
 def on_mouse_wheel(event):
     canvas.yview_scroll(int(-1*(event.delta/120)), "units")
 
