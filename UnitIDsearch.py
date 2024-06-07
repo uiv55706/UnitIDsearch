@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import messagebox, filedialog
 from datetime import datetime, time
 from tkcalendar import DateEntry
+import tempfile
 
 # Function to read production PC names and paths from the Excel file
 def read_production_pcs(file_path):
@@ -34,7 +35,7 @@ def extract_station_name_from_logs(file_path):
     return "Unknown Station"
 
 # Function to process the tracer files
-def process_file(file_path, drive_name, search_terms, found_terms):
+def process_file(file_path, drive_name, search_terms, found_terms, temp_file):
     results = []
     try:
         with open(file_path, 'r') as file:
@@ -44,6 +45,7 @@ def process_file(file_path, drive_name, search_terms, found_terms):
                 for term in search_terms:
                     if term in line:
                         found_terms.add(term)
+                        temp_file.write(term + "\n")
                         result_message = f"{drive_name} - {station_name}\n{line.strip()}\n"
                         if 'UNIT_RESULT' in line and i < len(lines) - 1:
                             next_line = lines[i + 1].strip()
@@ -54,7 +56,7 @@ def process_file(file_path, drive_name, search_terms, found_terms):
     return results
 
 # Function to traverse directories and process tracer files within a date range
-def traverse_directory(root_dir, drive_name, search_terms, start_date, end_date, station_name, found_terms):
+def traverse_directory(root_dir, drive_name, search_terms, start_date, end_date, station_name, found_terms, temp_file):
     results = []
     try:
         print(f"Processing drive: {drive_name} at path: {root_dir}")
@@ -73,7 +75,7 @@ def traverse_directory(root_dir, drive_name, search_terms, start_date, end_date,
                     file_date = datetime.fromtimestamp(file_mod_time)
                     if start_datetime <= file_date <= end_datetime:
                         print(f"Processing file: {file_path}")
-                        results.extend(process_file(file_path, drive_name, search_terms, found_terms))
+                        results.extend(process_file(file_path, drive_name, search_terms, found_terms, temp_file))
     except Exception as e:
         print(f"Error traversing directory {root_dir}: {e}")
     return results
@@ -103,11 +105,15 @@ def search_and_output_uids():
     results = []
     found_terms = set()
 
-    for drive_name in selected_drives:
-        drive_path = production_pcs.get(drive_name)
-        if drive_path:
-            drive_results = traverse_directory_uids(drive_path, drive_name, search_terms, start_date, end_date, station_name, found_terms)
-            results.extend(drive_results)
+    # Create a temporary file to store found terms
+    with tempfile.NamedTemporaryFile(delete=False, mode='w') as temp_file:
+        temp_file_path = temp_file.name
+
+        for drive_name in selected_drives:
+            drive_path = production_pcs.get(drive_name)
+            if drive_path:
+                drive_results = traverse_directory_uids(drive_path, drive_name, search_terms, start_date, end_date, station_name, found_terms, temp_file)
+                results.extend(drive_results)
 
     not_found = set(search_terms) - found_terms
     if results:
@@ -125,8 +131,22 @@ def search_and_output_uids():
         else:
             messagebox.showinfo("Search Results", "No matching results found.")
 
+    # Read the temporary file and compare with the original search terms
+    try:
+        with open(output_file_path, 'w') as output_file:
+            for result in results:
+                output_file.write(result + "\n")
+            if not_found:
+                output_file.write(f"\nNot Found Search Terms: {', '.join(not_found)}\n")
+        messagebox.showinfo("Search Results", f"Results written to {output_file_path}")
+    except Exception as e:
+        messagebox.showerror("File Error", f"Could not write to file: {e}")
+
+    # Delete the temporary file
+    os.remove(temp_file_path)
+
 # Function to process files and extract UID details
-def process_file_uids(file_path, drive_name, search_terms, found_terms):
+def process_file_uids(file_path, drive_name, search_terms, found_terms, temp_file):
     results = []
     try:
         with open(file_path, 'r') as file:
@@ -136,6 +156,7 @@ def process_file_uids(file_path, drive_name, search_terms, found_terms):
                 for term in search_terms:
                     if term in line:
                         found_terms.add(term)
+                        temp_file.write(term + "\n")
                         uid_in_match = re.search(r'uid_in="([^"]+)"', line)
                         uid_assy_1_match = re.search(r'uid_assy_1="([^"]+)"', line)
                         if uid_in_match and uid_assy_1_match:
@@ -148,7 +169,7 @@ def process_file_uids(file_path, drive_name, search_terms, found_terms):
     return results
 
 # Function to traverse directories and process files for UID extraction within a date range
-def traverse_directory_uids(root_dir, drive_name, search_terms, start_date, end_date, station_name, found_terms):
+def traverse_directory_uids(root_dir, drive_name, search_terms, start_date, end_date, station_name, found_terms, temp_file):
     results = []
     try:
         print(f"Processing drive: {drive_name} at path: {root_dir}")
@@ -167,7 +188,7 @@ def traverse_directory_uids(root_dir, drive_name, search_terms, start_date, end_
                     file_date = datetime.fromtimestamp(file_mod_time)
                     if start_datetime <= file_date <= end_datetime:
                         print(f"Processing file: {file_path}")
-                        results.extend(process_file_uids(file_path, drive_name, search_terms, found_terms))
+                        results.extend(process_file_uids(file_path, drive_name, search_terms, found_terms, temp_file))
     except Exception as e:
         print(f"Error traversing directory {root_dir}: {e}")
     return results
@@ -197,27 +218,40 @@ def search_errors():
     results = []
     found_terms = set()
 
-    for drive_name in selected_drives:
-        drive_path = production_pcs.get(drive_name)
-        if drive_path:
-            drive_results = traverse_directory(drive_path, drive_name, search_terms, start_date, end_date, station_name, found_terms)
-            results.extend(drive_results)
+    # Create a temporary file to store found terms
+    with tempfile.NamedTemporaryFile(delete=False, mode='w') as temp_file:
+        temp_file_path = temp_file.name
+
+        for drive_name in selected_drives:
+            drive_path = production_pcs.get(drive_name)
+            if drive_path:
+                drive_results = traverse_directory(drive_path, drive_name, search_terms, start_date, end_date, station_name, found_terms, temp_file)
+                results.extend(drive_results)
 
     not_found = set(search_terms) - found_terms
-    if results:
-        output_file_path = r'\\vt1.vitesco.com\SMT\didt1083\01_MES_PUBLIC\1.6.Production Errors\output.txt'
-        try:
-            with open(output_file_path, 'w') as output_file:
-                for result in results:
-                    output_file.write(result + "\n")
-            messagebox.showinfo("Search Results", f"Results written to {output_file_path}")
-        except Exception as e:
-            messagebox.showerror("File Error", f"Could not write to file: {e}")
-    else:
-        if not_found:
-            messagebox.showinfo("Search Results", f"No matching results found for terms: {', '.join(not_found)}")
-        else:
-            messagebox.showinfo("Search Results", "No matching results found.")
+    output_file_path = r'\\vt1.vitesco.com\SMT\didt1083\01_MES_PUBLIC\1.6.Production Errors\output.txt'
+    try:
+        with open(output_file_path, 'w') as output_file:
+            for result in results:
+                output_file.write(result + "\n")
+            if not_found:
+                output_file.write(f"\nNot Found Search Terms: {', '.join(not_found)}\n")
+        messagebox.showinfo("Search Results", f"Results written to {output_file_path}")
+    except Exception as e:
+        messagebox.showerror("File Error", f"Could not write to file: {e}")
+
+    # Read the temporary file and compare with the original search terms
+    try:
+        with open(temp_file_path, 'r') as temp_file:
+            found_terms_in_file = set(temp_file.read().splitlines())
+        not_found_terms = set(search_terms) - found_terms_in_file
+        if not_found_terms:
+            messagebox.showinfo("Search Results", f"The following terms were not found: {', '.join(not_found_terms)}")
+    except Exception as e:
+        print(f"Error reading temporary file: {e}")
+
+    # Delete the temporary file
+    os.remove(temp_file_path)
 
 # Function to select all checkboxes
 def select_all():
