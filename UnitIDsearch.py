@@ -138,7 +138,6 @@ def search_and_output_uids():
                 output_file.write(result + "\n")
             if not_found:
                 output_file.write(f"\nNot Found Search Terms: {', '.join(not_found)}\n")
-        messagebox.showinfo("Search Results", f"Results written to {output_file_path}")
     except Exception as e:
         messagebox.showerror("File Error", f"Could not write to file: {e}")
 
