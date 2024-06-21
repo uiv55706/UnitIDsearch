@@ -6,6 +6,15 @@ from tkinter import messagebox, filedialog
 from datetime import datetime, time
 from tkcalendar import DateEntry
 import tempfile
+import json
+
+# Load confiduration from config.json
+with open('config.json', 'r') as config_file:
+    config = json.load(config_file)
+    
+output_path_uid = config['output_path_uids']
+output_path_lines = config['output_path_lines']
+production_pc_source = config['production_pc_path']
 
 # Function to read production PC names and paths from the Excel file
 def read_production_pcs(file_path):
@@ -35,7 +44,7 @@ def extract_station_name_from_logs(file_path):
     return "Unknown Station"
 
 # Function to process the tracer files
-def process_file(file_path, drive_name, search_terms, found_terms, temp_file):
+def process_file(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard):
     results = []
     try:
         with open(file_path, 'r') as file:
@@ -56,7 +65,7 @@ def process_file(file_path, drive_name, search_terms, found_terms, temp_file):
     return results
 
 # Function to traverse directories and process tracer files within a date range
-def traverse_directory(root_dir, drive_name, search_terms, start_date, end_date, station_name, found_terms, temp_file):
+def traverse_directory(root_dir, drive_name, search_terms, start_date, end_date, station_name, found_terms, temp_file, is_non_standard):
     results = []
     try:
         print(f"Processing drive: {drive_name} at path: {root_dir}")
@@ -64,7 +73,8 @@ def traverse_directory(root_dir, drive_name, search_terms, start_date, end_date,
         end_datetime = datetime.combine(end_date, time.max)
         for root, dirs, files in os.walk(root_dir):
             for file in files:
-                if "tracer" in file.lower() and station_name.lower() in root.lower():
+                if ((is_non_standard and "logging" in file.lower()) or 
+                    (not is_non_standard and "tracer" in file.lower())) and station_name.lower() in root.lower():
                     file_path = os.path.join(root, file)
                     print(f"Found file: {file_path}")  # Debugging print
                     if 'old' in file_path.lower() or 'not_used' in file_path.lower() or 'not used' in file_path.lower():
@@ -75,7 +85,7 @@ def traverse_directory(root_dir, drive_name, search_terms, start_date, end_date,
                     file_date = datetime.fromtimestamp(file_mod_time)
                     if start_datetime <= file_date <= end_datetime:
                         print(f"Processing file: {file_path}")
-                        results.extend(process_file(file_path, drive_name, search_terms, found_terms, temp_file))
+                        results.extend(process_file(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard))
     except Exception as e:
         print(f"Error traversing directory {root_dir}: {e}")
     return results
@@ -98,6 +108,9 @@ def search_and_output_uids():
 
     # Get the station name from entry field
     station_name = station_entry.get()
+    
+    # Get the non-standard selection
+    is_non_standard = non_standard_var.get()
 
     # Get selected drives from the checkboxes
     selected_drives = [drive for drive, var in drive_vars.items() if var.get()]
@@ -112,12 +125,12 @@ def search_and_output_uids():
         for drive_name in selected_drives:
             drive_path = production_pcs.get(drive_name)
             if drive_path:
-                drive_results = traverse_directory_uids(drive_path, drive_name, search_terms, start_date, end_date, station_name, found_terms, temp_file)
+                drive_results = traverse_directory_uids(drive_path, drive_name, search_terms, start_date, end_date, station_name, found_terms, temp_file, is_non_standard)
                 results.extend(drive_results)
 
     not_found = set(search_terms) - found_terms
     if results:
-        output_file_path = r'\\vt1.vitesco.com\SMT\didt1083\01_MES_PUBLIC\1.6.Production Errors\output_uids.txt'
+        output_file_path = output_path_uid
         try:
             with open(output_file_path, 'w') as output_file:
                 for result in results:
@@ -145,7 +158,7 @@ def search_and_output_uids():
     os.remove(temp_file_path)
 
 # Function to process files and extract UID details
-def process_file_uids(file_path, drive_name, search_terms, found_terms, temp_file):
+def process_file_uids(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard):
     results = []
     try:
         with open(file_path, 'r') as file:
@@ -168,7 +181,7 @@ def process_file_uids(file_path, drive_name, search_terms, found_terms, temp_fil
     return results
 
 # Function to traverse directories and process files for UID extraction within a date range
-def traverse_directory_uids(root_dir, drive_name, search_terms, start_date, end_date, station_name, found_terms, temp_file):
+def traverse_directory_uids(root_dir, drive_name, search_terms, start_date, end_date, station_name, found_terms, temp_file, is_non_standard):
     results = []
     try:
         print(f"Processing drive: {drive_name} at path: {root_dir}")
@@ -176,7 +189,8 @@ def traverse_directory_uids(root_dir, drive_name, search_terms, start_date, end_
         end_datetime = datetime.combine(end_date, time.max)
         for root, dirs, files in os.walk(root_dir):
             for file in files:
-                if "tracer" in file.lower() and station_name.lower() in root.lower():
+                if ((is_non_standard and "logging" in file.lower()) or 
+                    (not is_non_standard and "tracer" in file.lower())) and station_name.lower() in root.lower():
                     file_path = os.path.join(root, file)
                     print(f"Found file: {file_path}")  # Debugging print
                     if 'old' in file_path.lower() or 'not_used' in file_path.lower() or 'not used' in file_path.lower():
@@ -187,7 +201,7 @@ def traverse_directory_uids(root_dir, drive_name, search_terms, start_date, end_
                     file_date = datetime.fromtimestamp(file_mod_time)
                     if start_datetime <= file_date <= end_datetime:
                         print(f"Processing file: {file_path}")
-                        results.extend(process_file_uids(file_path, drive_name, search_terms, found_terms, temp_file))
+                        results.extend(process_file_uids(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard))
     except Exception as e:
         print(f"Error traversing directory {root_dir}: {e}")
     return results
@@ -213,6 +227,9 @@ def search_errors():
 
     # Get selected drives from the checkboxes
     selected_drives = [drive for drive, var in drive_vars.items() if var.get()]
+    
+    # Get the non-standard selection
+    is_non_standard = non_standard_var.get()
 
     results = []
     found_terms = set()
@@ -224,11 +241,11 @@ def search_errors():
         for drive_name in selected_drives:
             drive_path = production_pcs.get(drive_name)
             if drive_path:
-                drive_results = traverse_directory(drive_path, drive_name, search_terms, start_date, end_date, station_name, found_terms, temp_file)
+                drive_results = traverse_directory(drive_path, drive_name, search_terms, start_date, end_date, station_name, found_terms, temp_file, is_non_standard)
                 results.extend(drive_results)
 
     not_found = set(search_terms) - found_terms
-    output_file_path = r'\\vt1.vitesco.com\SMT\didt1083\01_MES_PUBLIC\1.6.Production Errors\output.txt'
+    output_file_path = output_path_lines
     try:
         with open(output_file_path, 'w') as output_file:
             for result in results:
@@ -280,7 +297,7 @@ def on_mouse_wheel(event):
 # Setup the main window
 root = tk.Tk()
 root.title("Unit ID Search")
-root.geometry("1280x720")
+root.geometry("1720x820")
 
 # Frame for search term and station name inputs
 input_frame = tk.Frame(root)
@@ -301,7 +318,7 @@ station_entry.pack(side=tk.LEFT, padx=10)
 
 # Date inputs frame
 date_frame = tk.Frame(root)
-date_frame.pack(pady=10, padx=10, anchor='w')
+date_frame.pack(pady=10, padx=10)
 
 # Start date input
 tk.Label(date_frame, text="Select Start Date:", font=("Arial", 14)).pack(side=tk.LEFT)
@@ -323,8 +340,13 @@ select_all_btn.pack(side=tk.LEFT, padx=(20, 5))
 unselect_all_btn = tk.Button(date_frame, text="Unselect All", command=unselect_all, font=("Arial", 14))
 unselect_all_btn.pack(side=tk.LEFT, padx=(20, 5))
 
+# Checkbox for non-standard file types
+non_standard_var = tk.BooleanVar()
+non_standard_chk = tk.Checkbutton(date_frame, text="Non-standard Line", variable=non_standard_var, font=("Arial", 14))
+non_standard_chk.pack(side=tk.LEFT, padx=(20, 5))
+
 # Drive selection
-production_pcs = read_production_pcs(r'\\vt1.vitesco.com\SMT\didt1083\01_MES_PUBLIC\1.6.Production Errors\production_pc.xlsx')
+production_pcs = read_production_pcs(production_pc_source)
 
 drive_frame = tk.Frame(root)
 drive_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)

@@ -1,0 +1,24 @@
+ESS Isolators Alutube Mounting Plus plastic cap - Unknown Station
+2024-06-05 13:26:15 912|Low   |Info     |GMP Common .NET|Unit checkin OK on Alu Tube. UnitID: 140AAR5G08N
+
+ESS Isolators Alutube Mounting Plus plastic cap - Unknown Station
+2024-06-05 13:26:55 172|Low   |Info     |GMP Common .NET|SetSingleUnitOfBatch was successful. Batch id: 00000A2C5341786400@0702047128@UBUD004272399, Actual Quantity: 17683, UnitID: 140AAR5G08N.
+
+ESS Isolators Alutube Mounting Plus plastic cap - Unknown Station
+2024-06-05 13:26:55 219|Low   |Info     |GMP Common .NET|Unit PASSED on Alu Tube. UnitID: 140AAR5G08N
+
+ESS Isolators Alutube Mounting Plus plastic cap - Unknown Station
+2024-06-05 13:23:58 267|Low   |Info     |GMP Common .NET|Unit checkin OK on Isolator. UnitID: 140AAR5G08N
+
+ESS Isolators Alutube Mounting Plus plastic cap - Unknown Station
+2024-06-05 13:24:30 697|Low   |Info     |GMP Common .NET|Unit PASSED on Isolator. UnitID: 140AAR5G08N
+
+ESS Isolators Alutube Mounting Plus plastic cap - lusCap
+2024-06-05 13:38:55 536|Low   |Info     |GMP Common .NET|Unit checkin OK on Plus Cap. UnitID: 140AAR5G08N
+
+ESS Isolators Alutube Mounting Plus plastic cap - lusCap
+2024-06-05 13:39:29 956|Low   |Info     |GMP Common .NET|SetSingleUnitOfBatch was successful. Batch id: 00000A2C5342626400@0702005801@S000013188250, Actual Quantity: 94570, UnitID: 140AAR5G08N.
+
+ESS Isolators Alutube Mounting Plus plastic cap - lusCap
+2024-06-05 13:39:30 003|Low   |Info     |GMP Common .NET|Unit PASSED on Plus Cap. UnitID: 140AAR5G08N
+
