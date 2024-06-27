@@ -13,7 +13,7 @@ Temporary File Handling: Temporary files are created to store intermediate searc
 
 Installation
 Clone the repository:
-git clone https://github.com/yourusername/unit-id-search-tool.git
+git clone https://github.com/vladutlazar/UnitIDsearch
 Navigate to the project directory:
 cd unit-id-search-tool
 Install required dependencies:
