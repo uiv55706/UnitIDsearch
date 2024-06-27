@@ -11,7 +11,7 @@ Non-standard Line Option: Toggle to search for non-standard log files.
 Output Options: Search and output either matching lines or UID details.
 Temporary File Handling: Temporary files are created to store intermediate search results.
 
-Installation
+Installation \n
 Clone the repository:
 git clone https://github.com/vladutlazar/UnitIDsearch
 Navigate to the project directory:
