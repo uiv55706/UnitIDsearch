@@ -34,13 +34,10 @@ def extract_station_name_from_logs(file_path):
     match = re.search(r'([^\\\/]+)[\\\/]Logs[\\\/]', file_path)
     if match:
         station_folder = match.group(1)
-        print(f"Extracting station name from folder: {station_folder}")  # Debugging print
         match = re.search(r'P(.*)', station_folder)
         if match:
             station_name = match.group(1)
-            print(f"Extracted station name: {station_name}")  # Debugging print
             return station_name
-    print("Logs folder not found in path.")  # Debugging print
     return "Unknown Station"
 
 # Function to process the tracer files
@@ -76,9 +73,7 @@ def traverse_directory(root_dir, drive_name, search_terms, start_date, end_date,
                 if ((is_non_standard and "logging" in file.lower()) or 
                     (not is_non_standard and "tracer" in file.lower())) and station_name.lower() in root.lower():
                     file_path = os.path.join(root, file)
-                    print(f"Found file: {file_path}")  # Debugging print
                     if 'old' in file_path.lower() or 'not_used' in file_path.lower() or 'not used' in file_path.lower():
-                        print(f"Skipping file: {file_path}")
                         continue
 
                     file_mod_time = os.path.getmtime(file_path)
@@ -90,6 +85,24 @@ def traverse_directory(root_dir, drive_name, search_terms, start_date, end_date,
         print(f"Error traversing directory {root_dir}: {e}")
     return results
 
+# Function to hide the window
+def hide_window():
+    root.withdraw()
+    
+#Function to combine the search lines function with the hide window function to put them on a single button
+def line_hide_combine():
+    hide_window()
+    search_errors()
+    
+#Function to combine the search uids function with the hide window function to put them on a single button
+def uid_hide_combine():
+    hide_window()
+    search_and_output_uids()
+
+# Function to unhide the main window
+def unhide_window():
+    root.deiconify()
+    
 # Function to handle the search and output UIDs functionality
 def search_and_output_uids():
     # Get search terms from entry field
@@ -136,13 +149,17 @@ def search_and_output_uids():
                 for result in results:
                     output_file.write(result + "\n")
             messagebox.showinfo("Search Results", f"Results written to {output_file_path}")
+            unhide_window()
         except Exception as e:
             messagebox.showerror("File Error", f"Could not write to file: {e}")
+            unhide_window()
     else:
         if not_found:
             messagebox.showinfo("Search Results", f"No matching results found for terms: {', '.join(not_found)}")
+            unhide_window()
         else:
             messagebox.showinfo("Search Results", "No matching results found.")
+            unhide_window()
 
     # Read the temporary file and compare with the original search terms
     try:
@@ -192,9 +209,7 @@ def traverse_directory_uids(root_dir, drive_name, search_terms, start_date, end_
                 if ((is_non_standard and "logging" in file.lower()) or 
                     (not is_non_standard and "tracer" in file.lower())) and station_name.lower() in root.lower():
                     file_path = os.path.join(root, file)
-                    print(f"Found file: {file_path}")  # Debugging print
                     if 'old' in file_path.lower() or 'not_used' in file_path.lower() or 'not used' in file_path.lower():
-                        print(f"Skipping file: {file_path}")
                         continue
 
                     file_mod_time = os.path.getmtime(file_path)
@@ -253,8 +268,10 @@ def search_errors():
             if not_found:
                 output_file.write(f"\nNot Found Search Terms: {', '.join(not_found)}\n")
         messagebox.showinfo("Search Results", f"Results written to {output_file_path}")
+        unhide_window()
     except Exception as e:
         messagebox.showerror("File Error", f"Could not write to file: {e}")
+        unhide_window()
 
     # Read the temporary file and compare with the original search terms
     try:
@@ -389,7 +406,7 @@ for drive_name in production_pcs.keys():
 button_frame = tk.Frame(root)
 button_frame.pack(pady=20)
 
-tk.Button(button_frame, text="Search and output lines", command=search_errors, font=("Arial", 14)).pack(side=tk.LEFT, padx=10)
-tk.Button(button_frame, text="Search and output UIDs", command=search_and_output_uids, font=("Arial", 14)).pack(side=tk.LEFT, padx=10)
+tk.Button(button_frame, text="Search and output lines", command=line_hide_combine, font=("Arial", 14)).pack(side=tk.LEFT, padx=10)
+tk.Button(button_frame, text="Search and output UIDs", command=uid_hide_combine, font=("Arial", 14)).pack(side=tk.LEFT, padx=10)
 
 root.mainloop()

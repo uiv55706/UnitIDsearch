@@ -1,5 +1,5 @@
 ('C:\\Users\\uiv55706\\OneDrive - Vitesco Technologies\\DEV\\UnitIDsearch '
- '1.0\\build\\UnitIDsearch\\PYZ-00.pyz',
+ '1.1\\build\\UnitIDsearch\\PYZ-00.pyz',
  [('PIL',
    'C:\\Users\\uiv55706\\AppData\\Local\\Programs\\Python\\Python312\\Lib\\site-packages\\PIL\\__init__.py',
    'PYMODULE'),
