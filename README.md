@@ -41,6 +41,7 @@ Enter Station Name: To filter logs from a specific station.
 Select Drives: Choose production PCs to scan for logs.
 Non-standard Line Option: Check if you want to search non-standard logs.
 Initiate Search: Click the button to search and output either lines or UIDs.
+
 Functions
 read_production_pcs(file_path): Reads production PC names and paths from an Excel file.
 extract_station_name_from_logs(file_path): Extracts the station name from the log file path.
