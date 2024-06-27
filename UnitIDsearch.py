@@ -92,7 +92,7 @@ def hide_window():
 #Function to combine the search lines function with the hide window function to put them on a single button
 def line_hide_combine():
     hide_window()
-    search_errors()
+    search_lines()
     
 #Function to combine the search uids function with the hide window function to put them on a single button
 def uid_hide_combine():
@@ -221,8 +221,8 @@ def traverse_directory_uids(root_dir, drive_name, search_terms, start_date, end_
         print(f"Error traversing directory {root_dir}: {e}")
     return results
 
-# Function to handle the search errors functionality
-def search_errors():
+# Function to handle the search lines functionality
+def search_lines():
     # Get search terms from entry field
     search_terms = search_entry.get().split(',')
     if not search_terms:
