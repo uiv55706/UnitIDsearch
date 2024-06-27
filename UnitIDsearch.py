@@ -71,7 +71,7 @@ def traverse_directory(root_dir, drive_name, search_terms, start_date, end_date,
         end_datetime = datetime.combine(end_date, time.max)
         for root, dirs, files in os.walk(root_dir):
             for file in files:
-                if ((is_non_standard and "logging" in file.lower()) or 
+                if ((is_non_standard and ("logging" in file.lower() or ".log" in file.lower())) or 
                     (not is_non_standard and "tracer" in file.lower())) and station_name.lower() in root.lower():
                     file_path = os.path.join(root, file)
                     if 'old' in file_path.lower() or 'not_used' in file_path.lower() or 'not used' in file_path.lower():
@@ -207,7 +207,7 @@ def traverse_directory_uids(root_dir, drive_name, search_terms, start_date, end_
         end_datetime = datetime.combine(end_date, time.max)
         for root, dirs, files in os.walk(root_dir):
             for file in files:
-                if ((is_non_standard and "logging" in file.lower()) or 
+                if ((is_non_standard and ("logging" in file.lower() or ".log" in file.lower())) or 
                     (not is_non_standard and "tracer" in file.lower())) and station_name.lower() in root.lower():
                     file_path = os.path.join(root, file)
                     if 'old' in file_path.lower() or 'not_used' in file_path.lower() or 'not used' in file_path.lower():
