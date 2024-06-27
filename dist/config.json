@@ -1,6 +1,6 @@
 {
     "output_path_uids": "output_uids.txt",
     "output_path_lines": "output_lines.txt",
-    "production_pc_path": "\\\\vt1.vitesco.com\\SMT\\didt1083\\04_MES_BACKUP\\Profiles\\production_pc.xlsx"
+    "production_pc_path": "production_pc.xlsx"
   }
   
