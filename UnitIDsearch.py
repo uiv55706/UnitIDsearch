@@ -15,6 +15,7 @@ with open('config.json', 'r') as config_file:
 output_path_uid = config['output_path_uids']
 output_path_lines = config['output_path_lines']
 production_pc_source = config['production_pc_path']
+nr_of_columns = config['number_of_columns']
 
 # Function to read production PC names and paths from the Excel file
 def read_production_pcs(file_path):
@@ -389,18 +390,24 @@ scrollable_frame.bind_all("<MouseWheel>", on_mouse_wheel)
 drive_vars = {}
 tk.Label(scrollable_frame, text="Select Production PC's:", font=("Arial", 14)).grid(row=0, column=0, columnspan=4, sticky='w', pady=10)
 
-max_columns = 4  # Number of columns in the grid
-current_row = 1
-current_column = 0
+# Get and sort drive names alphabetically
+sorted_drive_names = sorted(production_pcs.keys())
 
-for drive_name in production_pcs.keys():
-    var = tk.BooleanVar()
-    tk.Checkbutton(scrollable_frame, text=drive_name, variable=var, font=("Arial", 12)).grid(row=current_row, column=current_column, sticky='w', padx=10, pady=5)
-    drive_vars[drive_name] = var
-    current_column += 1
-    if current_column >= max_columns:
-        current_column = 0
-        current_row += 1
+# Calculate the number of rows needed
+num_drives = len(sorted_drive_names)
+max_columns = nr_of_columns
+num_rows = (num_drives + max_columns - 1) // max_columns
+
+# Create checkboxes for each drive in column-major order
+drive_vars = {}
+for col in range(max_columns):
+    for row in range(num_rows):
+        index = col * num_rows + row
+        if index < num_drives:
+            drive_name = sorted_drive_names[index]
+            var = tk.BooleanVar()
+            tk.Checkbutton(scrollable_frame, text=drive_name, variable=var, font=("Arial", 12)).grid(row=row + 1, column=col, sticky='w', padx=10, pady=5)
+            drive_vars[drive_name] = var
 
 # Search buttons
 button_frame = tk.Frame(root)
