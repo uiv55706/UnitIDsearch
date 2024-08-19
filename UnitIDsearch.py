@@ -6,16 +6,7 @@ from tkinter import messagebox, filedialog
 from datetime import datetime, time
 from tkcalendar import DateEntry
 import tempfile
-import json
-
-# Load confiduration from config.json
-with open('config.json', 'r') as config_file:
-    config = json.load(config_file)
-    
-output_path_uid = config['output_path_uids']
-output_path_lines = config['output_path_lines']
-production_pc_source = config['production_pc_path']
-nr_of_columns = config['number_of_columns']
+from config import output_path_uid, output_path_lines, production_pc_source, nr_of_columns
 
 # Function to read production PC names and paths from the Excel file
 def read_production_pcs(file_path):
