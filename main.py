@@ -2,9 +2,8 @@ import os
 import pandas as pd
 import tkinter as tk
 from tkinter import messagebox, filedialog
-from datetime import datetime, time
+from datetime import datetime
 from tkcalendar import DateEntry
-import tempfile
 from config import output_path_uid, output_path_lines, production_pc_source, nr_of_columns
 from file_manip import read_production_pcs
 from gui import search_and_output_uids, search_lines, line_hide_combine, uid_hide_combine
