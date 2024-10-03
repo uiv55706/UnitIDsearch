@@ -7,7 +7,48 @@ from datetime import datetime, time
 from tkcalendar import DateEntry
 import tempfile
 import json
+import logging
+import sys
 
+# Set up a logger
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
+
+# Create a file handler
+file_handler = logging.FileHandler('UnitID_Log.txt', mode='a')  # Append mode
+file_handler.setLevel(logging.INFO)
+
+# Create a console handler
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+
+# Define a log format
+formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+
+# Set the formatter for both handlers
+file_handler.setFormatter(formatter)
+console_handler.setFormatter(formatter)
+
+# Add the handlers to the logger
+logger.addHandler(file_handler)
+logger.addHandler(console_handler)
+
+# Redirect standard output to the logging system
+class StreamToLogger:
+    def __init__(self, logger, level=logging.INFO):
+        self.logger = logger
+        self.level = level
+
+    def write(self, message):
+        if message.strip():  # Avoid logging empty messages
+            self.logger.log(self.level, message.strip())
+
+    def flush(self):
+        pass  # No need to flush for this example
+
+# Redirect stdout to the logger
+sys.stdout = StreamToLogger(logger, logging.INFO)  # Use logger instance
+sys.stderr = StreamToLogger(logger, logging.ERROR)  # Optionally redirect stderr as well
 # Load confiduration from config.json
 with open('config.json', 'r') as config_file:
     config = json.load(config_file)
@@ -32,7 +73,8 @@ def read_production_pcs(file_path):
 
 # Function to extract the station name from the folder before the "Logs" folder
 def extract_station_name_from_logs(file_path):
-    match = re.search(r'([^\\\/]+)[\\\/]Logs[\\\/]', file_path)
+    # Correctly combine the regex pattern with re.IGNORECASE flag
+    match = re.search(r'([^\\\/]+)[\\\/]Logs[\\\/]', file_path, re.IGNORECASE)
     if match:
         station_folder = match.group(1)
         match = re.search(r'P(.*)', station_folder)
@@ -40,6 +82,7 @@ def extract_station_name_from_logs(file_path):
             station_name = match.group(1)
             return station_name
     return "Unknown Station"
+
 
 # Function to process the tracer files
 def process_file(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard):
@@ -69,22 +112,50 @@ def traverse_directory(root_dir, drive_name, search_terms, start_date, end_date,
         print(f"Processing drive: {drive_name} at path: {root_dir}")
         start_datetime = datetime.combine(start_date, time.min)
         end_datetime = datetime.combine(end_date, time.max)
+
         for root, dirs, files in os.walk(root_dir):
             for file in files:
-                if ((is_non_standard and ("logging" in file.lower() or ".log" in file.lower())) or 
-                    (not is_non_standard and "tracer.txt" in file.lower() or "GHP.log" in file.lower())) and station_name.lower() in root.lower():
-                    file_path = os.path.join(root, file)
-                    if 'old' in file_path.lower() or 'not_used' in file_path.lower() or 'not used' in file_path.lower():
-                        continue
+                
+                # Check for standard application logs
+                if not is_non_standard:
+                    # Match "VitescoAppMonitoringService.log." with date and version suffixes
+                    if (file.lower().startswith("vitescoappmonitoringservice.log.") or 
+                        file.lower().endswith("tracer.txt")) and station_name.lower() in root.lower():
+                        
+                        file_path = os.path.join(root, file)
+                        
+                        # Skip files with 'old', 'not_used', etc. in their names
+                        if 'old' in file_path.lower() or 'not_used' in file_path.lower() or 'not used' in file_path.lower():
+                            continue
 
-                    file_mod_time = os.path.getmtime(file_path)
-                    file_date = datetime.fromtimestamp(file_mod_time)
-                    if start_datetime <= file_date <= end_datetime:
-                        print(f"Processing file: {file_path}")
-                        results.extend(process_file(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard))
+                        # Check if the file modification time falls within the specified date range
+                        file_mod_time = os.path.getmtime(file_path)
+                        file_date = datetime.fromtimestamp(file_mod_time)
+                        if start_datetime <= file_date <= end_datetime:
+                            print(f"Processing file: {file_path}")
+                            results.extend(process_file(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard))
+
+                # Check for non-standard application logs
+                else:
+                    if (file.lower().startswith("logging") or file.lower().endswith(".log")) and station_name.lower() in root.lower():
+                        
+                        file_path = os.path.join(root, file)
+                        
+                        # Skip files with 'old', 'not_used', etc. in their names
+                        if 'old' in file_path.lower() or 'not_used' in file_path.lower() or 'not used' in file_path.lower():
+                            continue
+
+                        # Check if the file modification time falls within the specified date range
+                        file_mod_time = os.path.getmtime(file_path)
+                        file_date = datetime.fromtimestamp(file_mod_time)
+                        if start_datetime <= file_date <= end_datetime:
+                            print(f"Processing file: {file_path}")
+                            results.extend(process_file(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard))
+                    
     except Exception as e:
         print(f"Error traversing directory {root_dir}: {e}")
     return results
+
 
 # Function to hide the window
 def hide_window():
@@ -205,22 +276,45 @@ def traverse_directory_uids(root_dir, drive_name, search_terms, start_date, end_
         print(f"Processing drive: {drive_name} at path: {root_dir}")
         start_datetime = datetime.combine(start_date, time.min)
         end_datetime = datetime.combine(end_date, time.max)
+
         for root, dirs, files in os.walk(root_dir):
             for file in files:
-                if ((is_non_standard and ("logging" in file.lower() or ".log" in file.lower())) or 
-                    (not is_non_standard and "tracer.txt" in file.lower() or "GHP.log" in file.lower())) and station_name.lower() in root.lower():
-                    file_path = os.path.join(root, file)
-                    if 'old' in file_path.lower() or 'not_used' in file_path.lower() or 'not used' in file_path.lower():
-                        continue
+                # Check for non-standard logs
+                if is_non_standard:
+                    if "logging" in file.lower() or file.lower().endswith(".log"):
+                        if station_name.lower() in root.lower():
+                            file_path = os.path.join(root, file)
+                            # Skip files with 'old', 'not_used', etc. in their names
+                            if 'old' in file_path.lower() or 'not_used' in file_path.lower() or 'not used' in file_path.lower():
+                                continue
 
-                    file_mod_time = os.path.getmtime(file_path)
-                    file_date = datetime.fromtimestamp(file_mod_time)
-                    if start_datetime <= file_date <= end_datetime:
-                        print(f"Processing file: {file_path}")
-                        results.extend(process_file_uids(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard))
+                            # Check if the file modification time falls within the specified date range
+                            file_mod_time = os.path.getmtime(file_path)
+                            file_date = datetime.fromtimestamp(file_mod_time)
+                            if start_datetime <= file_date <= end_datetime:
+                                print(f"Processing file: {file_path}")
+                                results.extend(process_file_uids(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard))
+
+                # Check for standard logs (tracer.txt and VitescoAppMonitoringService.log.)
+                else:
+                    if ("tracer.txt" in file.lower() or file.lower().startswith("vitescoappmonitoringservice.log.")):
+                        if station_name.lower() in root.lower():
+                            file_path = os.path.join(root, file)
+                            # Skip files with 'old', 'not_used', etc. in their names
+                            if 'old' in file_path.lower() or 'not_used' in file_path.lower() or 'not used' in file_path.lower():
+                                continue
+
+                            # Check if the file modification time falls within the specified date range
+                            file_mod_time = os.path.getmtime(file_path)
+                            file_date = datetime.fromtimestamp(file_mod_time)
+                            if start_datetime <= file_date <= end_datetime:
+                                print(f"Processing file: {file_path}")
+                                results.extend(process_file_uids(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard))
+
     except Exception as e:
         print(f"Error traversing directory {root_dir}: {e}")
     return results
+
 
 # Function to handle the search lines functionality
 def search_lines():
