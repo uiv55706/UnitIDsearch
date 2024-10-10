@@ -9,6 +9,7 @@ import tempfile
 import json
 import logging
 import sys
+import csv
 
 # Set up a logger
 logger = logging.getLogger()
@@ -175,6 +176,8 @@ def uid_hide_combine():
 def unhide_window():
     root.deiconify()
     
+import csv
+
 # Function to handle the search and output UIDs functionality
 def search_and_output_uids():
     # Get search terms from entry field
@@ -214,34 +217,24 @@ def search_and_output_uids():
                 results.extend(drive_results)
 
     not_found = set(search_terms) - found_terms
-    if results:
-        output_file_path = output_path_uid
-        try:
-            with open(output_file_path, 'w') as output_file:
-                for result in results:
-                    output_file.write(result + "\n")
-            messagebox.showinfo("Search Results", f"Results written to {output_file_path}")
-            unhide_window()
-        except Exception as e:
-            messagebox.showerror("File Error", f"Could not write to file: {e}")
-            unhide_window()
-    else:
-        if not_found:
-            messagebox.showinfo("Search Results", f"No matching results found for terms: {', '.join(not_found)}")
-            unhide_window()
-        else:
-            messagebox.showinfo("Search Results", "No matching results found.")
-            unhide_window()
+    output_file_path = output_path_uid
 
-    # Read the temporary file and compare with the original search terms
+    # Write UID pairs to CSV file
     try:
-        with open(output_file_path, 'w') as output_file:
+        with open(output_file_path, 'w', newline='') as output_file:
+            csv_writer = csv.writer(output_file)
+            csv_writer.writerow(['Drive Name', 'Station Name', 'UID In', 'UID Assy 1'])  # Header row
             for result in results:
-                output_file.write(result + "\n")
-            if not_found:
-                output_file.write(f"\nNot Found Search Terms: {', '.join(not_found)}\n")
+                drive_station, uids = result.split('\n')[:2]  # Extract drive/station and UIDs
+                drive_name, station_name = drive_station.split(' - ')
+                uid_in, uid_assy_1 = uids.split(' ')
+                csv_writer.writerow([drive_name, station_name, uid_in, uid_assy_1])
+
+        messagebox.showinfo("Search Results", f"Results written to {output_file_path}")
+        unhide_window()
     except Exception as e:
         messagebox.showerror("File Error", f"Could not write to file: {e}")
+        unhide_window()
 
     # Delete the temporary file
     os.remove(temp_file_path)
@@ -261,8 +254,8 @@ def process_file_uids(file_path, drive_name, search_terms, found_terms, temp_fil
                         uid_in_match = re.search(r'uid_in="([^"]+)"', line)
                         uid_assy_1_match = re.search(r'uid_assy_1="([^"]+)"', line)
                         if uid_in_match and uid_assy_1_match:
-                            uid_in = uid_in_match.group(0)
-                            uid_assy_1 = uid_assy_1_match.group(0)
+                            uid_in = uid_in_match.group(1)
+                            uid_assy_1 = uid_assy_1_match.group(1)
                             result_message = f"{drive_name} - {station_name}\n{uid_in} {uid_assy_1}\n"
                             results.append(result_message)
     except Exception as e:
