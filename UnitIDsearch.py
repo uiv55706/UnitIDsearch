@@ -239,9 +239,14 @@ def search_and_output_uids():
     # Delete the temporary file
     os.remove(temp_file_path)
 
-# Function to process files and extract UID details
-def process_file_uids(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard):
+# Function to process files and extract UID details based on dynamic uid_assy fields
+def process_file_uids(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard, n):
     results = []
+    n = subassy_entry
+    if subassy_entry == '0':
+        messagebox.showwarning("Input Error","There must be at least one subassembly")
+        return
+        
     try:
         with open(file_path, 'r') as file:
             station_name = extract_station_name_from_logs(file_path)
@@ -251,15 +256,31 @@ def process_file_uids(file_path, drive_name, search_terms, found_terms, temp_fil
                     if term in line:
                         found_terms.add(term)
                         temp_file.write(term + "\n")
+                        
+                        # Search for uid_in
                         uid_in_match = re.search(r'uid_in="([^"]+)"', line)
-                        uid_assy_1_match = re.search(r'uid_assy_1="([^"]+)"', line)
-                        if uid_in_match and uid_assy_1_match:
-                            uid_in = uid_in_match.group(1)
-                            uid_assy_1 = uid_assy_1_match.group(1)
-                            result_message = f"{drive_name} - {station_name}\n{uid_in} {uid_assy_1}\n"
+                        
+                        # Search for uid_assy_1 to uid_assy_n
+                        uid_in = uid_in_match.group(1) if uid_in_match else None
+                        uid_assy_list = []
+                        
+                        for j in range(1, n + 1):
+                            uid_assy_match = re.search(f'uid_assy_{j}="([^"]+)"', line)
+                            if uid_assy_match:
+                                uid_assy_list.append(uid_assy_match.group(1))
+                            else:
+                                uid_assy_list.append('')  # If the UID is missing, add an empty string to keep columns aligned
+                        
+                        # Only append results if uid_in is found and uid_assy data exists
+                        if uid_in:
+                            # Append drive_name, station_name, uid_in, and uid_assy_list
+                            result_message = [drive_name, station_name, uid_in] + uid_assy_list
                             results.append(result_message)
     except Exception as e:
         print(f"Error processing file {file_path}: {e}")
+    
+    return results
+    
     return results
 
 # Function to traverse directories and process files for UID extraction within a date range
@@ -502,5 +523,13 @@ button_frame.pack(pady=20)
 
 tk.Button(button_frame, text="Search and output lines", command=line_hide_combine, font=("Arial", 14)).pack(side=tk.LEFT, padx=10)
 tk.Button(button_frame, text="Search and output UIDs", command=uid_hide_combine, font=("Arial", 14)).pack(side=tk.LEFT, padx=10)
+
+# Number of subassemblies input
+tk.Label(button_frame, text="Number of subassemblies", font=("Arial", 14)).pack(side=tk.RIGHT)
+subassy_entry = tk.Entry(button_frame, font=("Arial", 14), width=2)
+subassy_entry.pack(side=tk.RIGHT, padx=10)
+
+# Set default text '1'
+subassy_entry.insert(0, "1")
 
 root.mainloop()
