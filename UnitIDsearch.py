@@ -208,41 +208,57 @@ def search_and_output_uids():
 
     # Create a temporary file to store found terms
     with tempfile.NamedTemporaryFile(delete=False, mode='w') as temp_file:
+        n = int(subassy_entry.get())
         temp_file_path = temp_file.name
 
         for drive_name in selected_drives:
             drive_path = production_pcs.get(drive_name)
             if drive_path:
-                drive_results = traverse_directory_uids(drive_path, drive_name, search_terms, start_date, end_date, station_name, found_terms, temp_file, is_non_standard)
+                drive_results = traverse_directory_uids(drive_path, drive_name, search_terms, start_date, end_date, station_name, found_terms, temp_file, is_non_standard, n)
                 results.extend(drive_results)
 
     not_found = set(search_terms) - found_terms
     output_file_path = output_path_uid
 
-    # Write UID pairs to CSV file
-    try:
-        with open(output_file_path, 'w', newline='') as output_file:
-            csv_writer = csv.writer(output_file)
-            csv_writer.writerow(['Drive Name', 'Station Name', 'UID In', 'UID Assy 1'])  # Header row
-            for result in results:
-                drive_station, uids = result.split('\n')[:2]  # Extract drive/station and UIDs
-                drive_name, station_name = drive_station.split(' - ')
-                uid_in, uid_assy_1 = uids.split(' ')
-                csv_writer.writerow([drive_name, station_name, uid_in, uid_assy_1])
+    def write_uid_pairs_to_csv(output_file_path, results, n):
+        try:
+            with open(output_file_path, 'w', newline='') as output_file:
+                csv_writer = csv.writer(output_file)
 
-        messagebox.showinfo("Search Results", f"Results written to {output_file_path}")
-        unhide_window()
-    except Exception as e:
-        messagebox.showerror("File Error", f"Could not write to file: {e}")
-        unhide_window()
+                # Dynamically generate the header row based on n
+                header = ['Drive Name', 'Station Name', 'UID In'] + [f'UID Assy {i + 1}' for i in range(n)]
+                csv_writer.writerow(header)  # Write the header row
+            
+                # Iterate over results
+                for result in results:
+                    drive_station, uids = result.split('\n')[:2]  # Extract drive/station and UIDs
+                    drive_name, station_name = drive_station.split(' - ')
 
-    # Delete the temporary file
-    os.remove(temp_file_path)
+                    # Split UIDs, assuming the first one is 'UID In' and the rest are 'UID Assy'
+                    uids_split = uids.split(' ')
+                    uid_in = uids_split[0]  # First UID is UID In
+                    uid_assy = uids_split[1:n + 1]  # Next 'n' UIDs are UID Assy
+                
+                    # Ensure there are exactly 'n' UID Assy columns, pad with empty strings if needed
+                    uid_assy += [''] * (n - len(uid_assy))
+
+                    # Write the row with drive name, station name, UID In, and 'n' UID Assy values
+                    csv_writer.writerow([drive_name, station_name, uid_in] + uid_assy)
+
+            messagebox.showinfo("Search Results", f"Results written to {output_file_path}")
+            unhide_window()
+
+        except Exception as e:
+            messagebox.showerror("File Error", f"Could not write to file: {e}")
+            unhide_window()
+
+        # Delete the temporary file
+        os.remove(temp_file_path)
 
 # Function to process files and extract UID details based on dynamic uid_assy fields
 def process_file_uids(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard, n):
     results = []
-    n = subassy_entry
+    n = int(subassy_entry.get())
     if subassy_entry == '0':
         messagebox.showwarning("Input Error","There must be at least one subassembly")
         return
@@ -280,11 +296,10 @@ def process_file_uids(file_path, drive_name, search_terms, found_terms, temp_fil
         print(f"Error processing file {file_path}: {e}")
     
     return results
-    
-    return results
 
 # Function to traverse directories and process files for UID extraction within a date range
-def traverse_directory_uids(root_dir, drive_name, search_terms, start_date, end_date, station_name, found_terms, temp_file, is_non_standard):
+def traverse_directory_uids(root_dir, drive_name, search_terms, start_date, end_date, station_name, found_terms, temp_file, is_non_standard, n):
+    n = int(subassy_entry.get())
     results = []
     try:
         print(f"Processing drive: {drive_name} at path: {root_dir}")
@@ -307,7 +322,7 @@ def traverse_directory_uids(root_dir, drive_name, search_terms, start_date, end_
                             file_date = datetime.fromtimestamp(file_mod_time)
                             if start_datetime <= file_date <= end_datetime:
                                 print(f"Processing file: {file_path}")
-                                results.extend(process_file_uids(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard))
+                                results.extend(process_file_uids(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard, n))
 
                 # Check for standard logs (tracer.txt and VitescoAppMonitoringService.log.)
                 else:
@@ -323,12 +338,11 @@ def traverse_directory_uids(root_dir, drive_name, search_terms, start_date, end_
                             file_date = datetime.fromtimestamp(file_mod_time)
                             if start_datetime <= file_date <= end_datetime:
                                 print(f"Processing file: {file_path}")
-                                results.extend(process_file_uids(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard))
+                                results.extend(process_file_uids(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard, n))
 
     except Exception as e:
         print(f"Error traversing directory {root_dir}: {e}")
     return results
-
 
 # Function to handle the search lines functionality
 def search_lines():
