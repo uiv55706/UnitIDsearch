@@ -220,40 +220,47 @@ def search_and_output_uids():
     not_found = set(search_terms) - found_terms
     output_file_path = output_path_uid
 
-    def write_uid_pairs_to_csv(output_file_path, results, n):
-        try:
-            with open(output_file_path, 'w', newline='') as output_file:
-                csv_writer = csv.writer(output_file)
+    try:
+        with open(output_file_path, 'w', newline='') as output_file:
+            csv_writer = csv.writer(output_file)
 
-                # Dynamically generate the header row based on n
-                header = ['Drive Name', 'Station Name', 'UID In'] + [f'UID Assy {i + 1}' for i in range(n)]
-                csv_writer.writerow(header)  # Write the header row
+            # Dynamically generate the header row based on n
+            header = ['Drive Name', 'Station Name', 'UID In'] + [f'UID Assy {i + 1}' for i in range(n)]
+            csv_writer.writerow(header)  # Write the header row
             
-                # Iterate over results
-                for result in results:
+            # Iterate over results
+            for result in results:
+                if isinstance(result, str):
+                # If result is a string, process as expected
                     drive_station, uids = result.split('\n')[:2]  # Extract drive/station and UIDs
-                    drive_name, station_name = drive_station.split(' - ')
+                elif isinstance(result, list):
+                # If result is a list, extract drive/station and UIDs assuming a specific structure
+                    drive_station = result[0]  # Assume first element contains 'Drive - Station'
+                    uids = ' '.join(result[2:])  # Join the remaining elements as a string to process UIDs
 
-                    # Split UIDs, assuming the first one is 'UID In' and the rest are 'UID Assy'
-                    uids_split = uids.split(' ')
-                    uid_in = uids_split[0]  # First UID is UID In
-                    uid_assy = uids_split[1:n + 1]  # Next 'n' UIDs are UID Assy
+                drive_name = drive_station
+                station_name = extract_station_name_from_logs(drive_path)
+
+                # Split UIDs, assuming the first one is 'UID In' and the rest are 'UID Assy'
+                uids_split = uids.split(' ')
+                uid_in = uids_split[0]  # First UID is UID In
+                uid_assy = uids_split[1:n + 1]  # Next 'n' UIDs are UID Assy
                 
-                    # Ensure there are exactly 'n' UID Assy columns, pad with empty strings if needed
-                    uid_assy += [''] * (n - len(uid_assy))
+                # Ensure there are exactly 'n' UID Assy columns, pad with empty strings if needed
+                uid_assy += [''] * (n - len(uid_assy))
 
-                    # Write the row with drive name, station name, UID In, and 'n' UID Assy values
-                    csv_writer.writerow([drive_name, station_name, uid_in] + uid_assy)
+                # Write the row with drive name, station name, UID In, and 'n' UID Assy values
+                csv_writer.writerow([drive_name, station_name, uid_in] + uid_assy)
 
-            messagebox.showinfo("Search Results", f"Results written to {output_file_path}")
-            unhide_window()
+        messagebox.showinfo("Search Results", f"Results written to {output_file_path}")
+        unhide_window()
 
-        except Exception as e:
-            messagebox.showerror("File Error", f"Could not write to file: {e}")
-            unhide_window()
+    except Exception as e:
+        messagebox.showerror("File Error", f"Could not write to file: {e}")
+        unhide_window()
 
-        # Delete the temporary file
-        os.remove(temp_file_path)
+    # Delete the temporary file
+    os.remove(temp_file_path)
 
 # Function to process files and extract UID details based on dynamic uid_assy fields
 def process_file_uids(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard, n):
@@ -262,7 +269,7 @@ def process_file_uids(file_path, drive_name, search_terms, found_terms, temp_fil
     if subassy_entry == '0':
         messagebox.showwarning("Input Error","There must be at least one subassembly")
         return
-        
+    
     try:
         with open(file_path, 'r') as file:
             station_name = extract_station_name_from_logs(file_path)
