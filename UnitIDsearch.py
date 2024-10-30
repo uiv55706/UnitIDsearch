@@ -73,17 +73,18 @@ def read_production_pcs(file_path):
     return production_pcs
 
 # Function to extract the station name from the folder before the "Logs" folder
-def extract_station_name_from_logs(file_path):
+def extract_station_name_from_logs(file_path): 
     # Correctly combine the regex pattern with re.IGNORECASE flag
     match = re.search(r'([^\\\/]+)[\\\/]Logs[\\\/]', file_path, re.IGNORECASE)
+    print("First: ", match)
     if match:
         station_folder = match.group(1)
-        match = re.search(r'P(.*)', station_folder)
-        if match:
-            station_name = match.group(1)
+        match_station = re.search(r'^[^_]*_[^_]*_(.*)', station_folder)
+        print("Second: ", match_station)
+        if match_station:
+            station_name = match_station.group(1)
             return station_name
     return "Unknown Station"
-
 
 # Function to process the tracer files
 def process_file(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard):
@@ -102,6 +103,7 @@ def process_file(file_path, drive_name, search_terms, found_terms, temp_file, is
                             next_line = lines[i + 1].strip()
                             result_message += f"{next_line}\n"
                         results.append(result_message)
+                        # Testing with different sample paths
     except Exception as e:
         print(f"Error processing file {file_path}: {e}")
     return results
@@ -205,10 +207,20 @@ def search_and_output_uids():
 
     results = []
     found_terms = set()
+    
+    # Fetch the number of subassemblies, default to 1
+    try:
+        n = int(subassy_entry.get())
+    except ValueError:
+        messagebox.showerror("Input Error", "The number of subassemblies must be a valid number.")
+        return
+
+    if n <= 0:
+        messagebox.showwarning("Input Error", "There must be at least one subassembly.")
+        return
 
     # Create a temporary file to store found terms
     with tempfile.NamedTemporaryFile(delete=False, mode='w') as temp_file:
-        n = int(subassy_entry.get())
         temp_file_path = temp_file.name
 
         for drive_name in selected_drives:
@@ -227,30 +239,28 @@ def search_and_output_uids():
             # Dynamically generate the header row based on n
             header = ['Drive Name', 'Station Name', 'UID In'] + [f'UID Assy {i + 1}' for i in range(n)]
             csv_writer.writerow(header)  # Write the header row
-            
+
+            if not results:
+                messagebox.showinfo("Search Results", "No matching results found.")
+                return
+
             # Iterate over results
             for result in results:
-                if isinstance(result, str):
-                # If result is a string, process as expected
-                    drive_station, uids = result.split('\n')[:2]  # Extract drive/station and UIDs
-                elif isinstance(result, list):
-                # If result is a list, extract drive/station and UIDs assuming a specific structure
-                    drive_station = result[0]  # Assume first element contains 'Drive - Station'
-                    uids = ' '.join(result[2:])  # Join the remaining elements as a string to process UIDs
+                if len(result) != n + 3:  # Ensure the result is the expected length
+                    logger.warning(f"Unexpected result format: {result}")
+                    continue
 
-                drive_name = drive_station
-                station_name = extract_station_name_from_logs(drive_path)
+                drive_name = result[0]
+                station_name = result[1]
+                uid_in = result[2]
+                uid_assy_list = result[3:n+3]
 
-                # Split UIDs, assuming the first one is 'UID In' and the rest are 'UID Assy'
-                uids_split = uids.split(' ')
-                uid_in = uids_split[0]  # First UID is UID In
-                uid_assy = uids_split[1:n + 1]  # Next 'n' UIDs are UID Assy
-                
-                # Ensure there are exactly 'n' UID Assy columns, pad with empty strings if needed
-                uid_assy += [''] * (n - len(uid_assy))
+                if uid_in is None or any(assy is None for assy in uid_assy_list):
+                    logger.warning(f"Incomplete UID data in result: {result}")
+                    continue
 
                 # Write the row with drive name, station name, UID In, and 'n' UID Assy values
-                csv_writer.writerow([drive_name, station_name, uid_in] + uid_assy)
+                csv_writer.writerow([drive_name, station_name, uid_in] + uid_assy_list)
 
         messagebox.showinfo("Search Results", f"Results written to {output_file_path}")
         unhide_window()
@@ -271,8 +281,15 @@ def process_file_uids(file_path, drive_name, search_terms, found_terms, temp_fil
         return
     
     try:
+        # Debugging file path before extracting station name
+        print(f"Processing file path in process_file_uids: {file_path}")
+        
+        # Extract station name
+        station_name = station_entry.get()
+        print(f"Extracted station name in process_file_uids: {station_name}")  # Debug
+        
         with open(file_path, 'r') as file:
-            station_name = extract_station_name_from_logs(file_path)
+            station_name = station_entry.get()
             lines = file.readlines()
             for i, line in enumerate(lines):
                 for term in search_terms:
@@ -281,7 +298,7 @@ def process_file_uids(file_path, drive_name, search_terms, found_terms, temp_fil
                         temp_file.write(term + "\n")
                         
                         # Search for uid_in
-                        uid_in_match = re.search(r'uid_in="([^"]+)"', line)
+                        uid_in_match = re.search(fr'uid_in="([^"]+)"', line)
                         
                         # Search for uid_assy_1 to uid_assy_n
                         uid_in = uid_in_match.group(1) if uid_in_match else None
@@ -292,10 +309,13 @@ def process_file_uids(file_path, drive_name, search_terms, found_terms, temp_fil
                             if uid_assy_match:
                                 uid_assy_list.append(uid_assy_match.group(1))
                             else:
-                                uid_assy_list.append('')  # If the UID is missing, add an empty string to keep columns aligned
+                                uid_assy_list.append('')  # Keep columns aligned
                         
                         # Only append results if uid_in is found and uid_assy data exists
                         if uid_in:
+                            print(file_path)
+                            station_name = extract_station_name_from_logs(file_path)
+                            print(station_name)
                             # Append drive_name, station_name, uid_in, and uid_assy_list
                             result_message = [drive_name, station_name, uid_in] + uid_assy_list
                             results.append(result_message)
@@ -315,37 +335,42 @@ def traverse_directory_uids(root_dir, drive_name, search_terms, start_date, end_
 
         for root, dirs, files in os.walk(root_dir):
             for file in files:
-                # Check for non-standard logs
-                if is_non_standard:
-                    if "logging" in file.lower() or file.lower().endswith(".log"):
-                        if station_name.lower() in root.lower():
-                            file_path = os.path.join(root, file)
-                            # Skip files with 'old', 'not_used', etc. in their names
-                            if 'old' in file_path.lower() or 'not_used' in file_path.lower() or 'not used' in file_path.lower():
-                                continue
 
-                            # Check if the file modification time falls within the specified date range
-                            file_mod_time = os.path.getmtime(file_path)
-                            file_date = datetime.fromtimestamp(file_mod_time)
-                            if start_datetime <= file_date <= end_datetime:
-                                print(f"Processing file: {file_path}")
-                                results.extend(process_file_uids(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard, n))
+                # Check for standard application logs
+                if not is_non_standard: 
+                # Match "VitescoAppMonitoringService.log." with date and version suffixes
+                    if (file.lower().startswith("vitescoappmonitoringservice.log.") or 
+                        file.lower().endswith("tracer.txt")) and station_name.lower() in root.lower():
 
-                # Check for standard logs (tracer.txt and VitescoAppMonitoringService.log.)
+                        file_path = os.path.join(root, file)
+                        
+                        # Filter out 'old' and 'not_used' files
+                        if 'old' in file_path.lower() or 'not_used' in file_path.lower():
+                            continue
+                        
+                        # Verify date range
+                        file_mod_time = os.path.getmtime(file_path)
+                        file_date = datetime.fromtimestamp(file_mod_time)
+                        if start_datetime <= file_date <= end_datetime:
+                            print(f"Calling process_file_uids with file path: {file_path}")
+                            results.extend(process_file_uids(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard, n))
+                
+                # Check for non-standard application logs
                 else:
-                    if ("tracer.txt" in file.lower() or file.lower().startswith("vitescoappmonitoringservice.log.")):
-                        if station_name.lower() in root.lower():
-                            file_path = os.path.join(root, file)
-                            # Skip files with 'old', 'not_used', etc. in their names
-                            if 'old' in file_path.lower() or 'not_used' in file_path.lower() or 'not used' in file_path.lower():
-                                continue
+                    if (file.lower().startswith("logging") or file.lower().endswith(".log")) and station_name.lower() in root.lower():
 
-                            # Check if the file modification time falls within the specified date range
-                            file_mod_time = os.path.getmtime(file_path)
-                            file_date = datetime.fromtimestamp(file_mod_time)
-                            if start_datetime <= file_date <= end_datetime:
-                                print(f"Processing file: {file_path}")
-                                results.extend(process_file_uids(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard, n))
+                        file_path = os.path.join(root, file)
+                        
+                        # Filter out 'old' and 'not_used' files
+                        if 'old' in file_path.lower() or 'not_used' in file_path.lower():
+                            continue
+                        
+                        # Verify date range
+                        file_mod_time = os.path.getmtime(file_path)
+                        file_date = datetime.fromtimestamp(file_mod_time)
+                        if start_datetime <= file_date <= end_datetime:
+                            print(f"Calling process_file_uids with file path: {file_path}")
+                            results.extend(process_file_uids(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard, n))
 
     except Exception as e:
         print(f"Error traversing directory {root_dir}: {e}")
@@ -445,6 +470,10 @@ def on_mouse_wheel(event):
 root = tk.Tk()
 root.title("Unit ID Search")
 root.geometry("1720x820")
+
+# Load icon image (adjust path to your icon file)
+icon_path = "UnitIDsearch.ico"  # For .ico format
+root.iconbitmap(icon_path)  # Set the window icon
 
 # Frame for search term and station name inputs
 input_frame = tk.Frame(root)
@@ -552,5 +581,5 @@ subassy_entry.pack(side=tk.RIGHT, padx=10)
 
 # Set default text '1'
 subassy_entry.insert(0, "1")
-
+ 
 root.mainloop()
