@@ -275,19 +275,24 @@ def search_and_output_uids():
 # Function to process files and extract UID details based on dynamic uid_assy fields
 def process_file_uids(file_path, drive_name, search_terms, found_terms, temp_file, is_non_standard, n):
     results = []
-    n = int(subassy_entry.get())
-    if subassy_entry == '0':
-        messagebox.showwarning("Input Error","There must be at least one subassembly")
+
+    # Retrieve value from subassy_entry and validate
+    n = int(subassy_entry.get())  # Assuming subassy_entry is defined elsewhere
+    if str(n) == '0':
+        messagebox.showwarning("Input Error", "There must be at least one subassembly")
         return
     
+    # Initialize a set to track processed uid groups
+    processed_uid_groups = set()
+
     try:
         # Debugging file path before extracting station name
         print(f"Processing file path in process_file_uids: {file_path}")
-        
-        # Extract station name
+
+        # Extract station name from the entry (assuming station_entry is defined elsewhere)
         station_name = station_entry.get()
         print(f"Extracted station name in process_file_uids: {station_name}")  # Debug
-        
+
         with open(file_path, 'r') as file:
             station_name = station_entry.get()
             lines = file.readlines()
@@ -298,12 +303,11 @@ def process_file_uids(file_path, drive_name, search_terms, found_terms, temp_fil
                         temp_file.write(term + "\n")
                         
                         # Search for uid_in
-                        uid_in_match = re.search(fr'uid_in="([^"]+)"', line)
+                        uid_in_match = re.search(r'uid_in="([^"]+)"', line)
+                        uid_in = uid_in_match.group(1) if uid_in_match else None
                         
                         # Search for uid_assy_1 to uid_assy_n
-                        uid_in = uid_in_match.group(1) if uid_in_match else None
                         uid_assy_list = []
-                        
                         for j in range(1, n + 1):
                             uid_assy_match = re.search(f'uid_assy_{j}="([^"]+)"', line)
                             if uid_assy_match:
@@ -311,14 +315,19 @@ def process_file_uids(file_path, drive_name, search_terms, found_terms, temp_fil
                             else:
                                 uid_assy_list.append('')  # Keep columns aligned
                         
-                        # Only append results if uid_in is found and uid_assy data exists
-                        if uid_in:
+                        # Create uid group tuple
+                        uid_group = (uid_in, tuple(uid_assy_list))
+                        
+                        # Only append results if uid_in is found and this uid group hasn't been processed
+                        if uid_in and uid_group not in processed_uid_groups:
                             print(file_path)
-                            station_name = extract_station_name_from_logs(file_path)
+                            station_name = extract_station_name_from_logs(file_path)  # Assuming extract_station_name_from_logs is defined elsewhere
                             print(station_name)
                             # Append drive_name, station_name, uid_in, and uid_assy_list
                             result_message = [drive_name, station_name, uid_in] + uid_assy_list
                             results.append(result_message)
+                            # Track processed uid group
+                            processed_uid_groups.add(uid_group)
     except Exception as e:
         print(f"Error processing file {file_path}: {e}")
     
@@ -480,7 +489,7 @@ input_frame = tk.Frame(root)
 input_frame.pack(pady=10)
 
 # Search term input
-tk.Label(input_frame, text="Enter Search Terms:", font=("Arial", 14)).pack(side=tk.LEFT)
+tk.Label(input_frame, text="Enter SN or other term to search for:", font=("Arial", 14)).pack(side=tk.LEFT)
 search_entry = tk.Entry(input_frame, font=("Arial", 14), width=50)
 search_entry.pack(side=tk.LEFT, padx=10)
 
@@ -518,7 +527,7 @@ unselect_all_btn.pack(side=tk.LEFT, padx=(20, 5))
 
 # Checkbox for non-standard file types
 non_standard_var = tk.BooleanVar()
-non_standard_chk = tk.Checkbutton(date_frame, text="Non-standard Line", variable=non_standard_var, font=("Arial", 14))
+non_standard_chk = tk.Checkbutton(date_frame, text="GHP Common", variable=non_standard_var, font=("Arial", 14))
 non_standard_chk.pack(side=tk.LEFT, padx=(20, 5))
 
 # Drive selection
@@ -546,7 +555,7 @@ scrollbar.pack(side="right", fill="y")
 scrollable_frame.bind_all("<MouseWheel>", on_mouse_wheel)
 
 drive_vars = {}
-tk.Label(scrollable_frame, text="Select Production PC's:", font=("Arial", 14)).grid(row=0, column=0, columnspan=4, sticky='w', pady=10)
+tk.Label(scrollable_frame, text="Select Production Lines", font=("Arial", 14)).grid(row=0, column=0, columnspan=4, sticky='w', pady=10)
 
 # Get and sort drive names alphabetically
 sorted_drive_names = sorted(production_pcs.keys())
@@ -572,10 +581,10 @@ button_frame = tk.Frame(root)
 button_frame.pack(pady=20)
 
 tk.Button(button_frame, text="Search and output lines", command=line_hide_combine, font=("Arial", 14)).pack(side=tk.LEFT, padx=10)
-tk.Button(button_frame, text="Search and output UIDs", command=uid_hide_combine, font=("Arial", 14)).pack(side=tk.LEFT, padx=10)
+tk.Button(button_frame, text="Search and output SN Pairs", command=uid_hide_combine, font=("Arial", 14)).pack(side=tk.LEFT, padx=10)
 
 # Number of subassemblies input
-tk.Label(button_frame, text="Number of subassemblies", font=("Arial", 14)).pack(side=tk.RIGHT)
+tk.Label(button_frame, text="Number of subassys", font=("Arial", 14)).pack(side=tk.RIGHT)
 subassy_entry = tk.Entry(button_frame, font=("Arial", 14), width=2)
 subassy_entry.pack(side=tk.RIGHT, padx=10)
 

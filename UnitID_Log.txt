@@ -126,3 +126,7 @@
 2024-10-28 15:38:54,895 - ERROR - RuntimeError
 2024-10-28 15:38:54,895 - ERROR - :
 2024-10-28 15:38:54,895 - ERROR - Too early to create image: no default root window
+2025-04-11 09:34:42,493 - INFO - Processing drive: Test SCR_local_P70 at path: C:\Users\uiv55706\OneDrive - Vitesco Technologies\MES\MES_Clients\1.2.2. SCR_VA\Rework
+2025-04-11 09:34:42,527 - INFO - Calling process_file_uids with file path: C:\Users\uiv55706\OneDrive - Vitesco Technologies\MES\MES_Clients\1.2.2. SCR_VA\Rework\GHP_2.25.4.9_P70SCR\Logs\tracer.txt
+2025-04-11 09:34:42,528 - INFO - Processing file path in process_file_uids: C:\Users\uiv55706\OneDrive - Vitesco Technologies\MES\MES_Clients\1.2.2. SCR_VA\Rework\GHP_2.25.4.9_P70SCR\Logs\tracer.txt
+2025-04-11 09:34:42,529 - INFO - Extracted station name in process_file_uids:
